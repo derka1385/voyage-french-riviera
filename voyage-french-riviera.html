@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Grand Tour · Riviera & Alpes</title>
 <link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,6 +23,7 @@
     --shadow:0 18px 50px rgba(0,0,0,.55);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  button,.route-tab,.day-tab,.stop{touch-action:manipulation}
   html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
     font-family:'Manrope',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
   #map{position:absolute;inset:0}
@@ -234,16 +235,88 @@
   .maplibregl-ctrl-attrib a{color:#9aa0ad!important}
 
   @media (max-width:920px){
-    .detail{left:12px;right:12px;top:84px;width:auto;max-height:calc(100% - 116px)}
+    .detail{left:12px;right:12px;top:auto;bottom:calc(12px + env(safe-area-inset-bottom));
+      width:auto;max-height:58dvh;border-radius:18px;transform:translateY(calc(100% + 24px));opacity:0}
+    .detail.show{transform:translateY(0);opacity:1}
+    .detail .hero{padding:16px 18px 12px}
+    .detail h3{font-size:23px}
+    .detail .body{padding:2px 18px 18px}
     .topstats .stat:nth-child(3){display:none}
   }
   @media (max-width:680px){
-    .sidebar{top:auto;left:0;right:0;bottom:0;width:100%;height:46%;border-radius:20px 20px 0 0}
-    .sidebar.collapsed{transform:translateY(105%)}
-    .sidebtn{display:grid;top:auto;bottom:18px;left:18px}
-    .dock{bottom:auto;top:74px;left:18px;right:18px;transform:none;justify-content:center}
+    .topbar{padding:calc(10px + env(safe-area-inset-top)) 12px 8px;align-items:flex-start}
+    .brand{gap:10px}
+    .brand .mark{width:34px;height:34px;border-radius:9px;font-size:18px}
+    .brand .t1{font-size:17px}
+    .brand .t2{font-size:9.5px;letter-spacing:1.8px}
     .topstats{display:none}
+
+    .sidebar{top:auto;left:8px;right:8px;bottom:calc(76px + env(safe-area-inset-bottom));
+      width:auto;height:43dvh;border-radius:18px}
+    .sidebar.collapsed{transform:translateY(calc(100% + 96px))}
+    .side-head{padding:12px 14px 9px}
+    .side-head .eyebrow{font-size:9px;letter-spacing:2px}
+    .side-head h2{font-size:19px}
+    .side-head p{display:none}
+    .route-tabs{padding:0 12px 9px;gap:6px}
+    .route-tab{min-height:38px;font-size:11.5px}
+    .day-tabs{padding:0 12px 9px;gap:5px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+    .day-tabs::-webkit-scrollbar{display:none}
+    .day-tab{flex:0 0 54px;min-width:54px;padding:7px 4px 6px}
+    .day-tab .dl{display:none}
+    .stops{padding:0 10px 12px}
+    .day-title{padding:7px 6px;font-size:10.5px;letter-spacing:1.2px}
+    .stop{padding:9px 10px;gap:10px}
+    .stop .ic{width:32px;height:32px}
+    .stop .nm{font-size:13px}
+    .stop .tm{font-size:10px}
+    .stop .ds{-webkit-line-clamp:1;font-size:10.8px}
+
+    .dock{left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));top:auto;transform:none;
+      justify-content:space-between;gap:6px;padding:6px;border-radius:15px}
+    .dock .sep{display:none}
+    .dock button{flex:1;min-width:0;justify-content:center;padding:10px 6px;font-size:11px;min-height:44px}
+    .dock .ic{font-size:14px}
+    .sidebtn{display:grid;top:auto;bottom:calc(84px + env(safe-area-inset-bottom));left:12px;width:46px;height:46px}
+
+    .detail{left:8px;right:8px;bottom:calc(72px + env(safe-area-inset-bottom));max-height:62dvh;border-radius:18px}
+    .detail .close{width:36px;height:36px}
+    .detail .badge{font-size:9px;max-width:calc(100% - 48px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .detail h3{font-size:22px;padding-right:36px}
+    .photo-card img{aspect-ratio:16/9}
+    .chips{gap:6px}
+    .chip{font-size:10.5px;padding:5px 9px}
+    .inforow{font-size:11.5px;padding:10px 11px}
+    .navbtns{gap:6px;margin-top:14px}
+    .navbtns button{min-height:42px;padding:10px 6px;font-size:11.5px}
+
+    .toast{bottom:calc(150px + env(safe-area-inset-bottom));max-width:calc(100vw - 24px)}
+    .overlay{padding:calc(12px + env(safe-area-inset-top)) 10px calc(12px + env(safe-area-inset-bottom))}
+    .modal{padding:20px 16px;border-radius:18px;max-height:90dvh}
+    .modal h2{font-size:23px}
+    .btable{font-size:12.5px}
+    .btable td{vertical-align:top}
+    .btable td:last-child{white-space:normal;padding-left:10px}
     .plan-grid{grid-template-columns:1fr}
+
+    .intro{padding:calc(26px + env(safe-area-inset-top)) 18px calc(20px + env(safe-area-inset-bottom))}
+    .intro h1{font-size:clamp(34px,13vw,54px)}
+    .intro p{font-size:14px}
+    .intro .route-line{max-width:100%}
+    .intro .rl{max-width:100%;line-height:1.7;overflow-wrap:anywhere}
+    .intro .go{width:min(100%,280px);min-height:52px;padding:14px 24px}
+    .intro .credit{bottom:calc(14px + env(safe-area-inset-bottom))}
+  }
+  @media (max-width:380px){
+    .dock button{font-size:10.5px;padding:9px 4px}
+    .dock .ic{display:none}
+    .route-tab{font-size:11px}
+    .side-head h2{font-size:18px}
+  }
+  @media (max-height:700px) and (max-width:680px){
+    .sidebar{height:39dvh}
+    .detail{max-height:58dvh}
+    .side-head p{display:none}
   }
 </style>
 </head>
