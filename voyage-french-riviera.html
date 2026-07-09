@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+<title>Grand Tour · Riviera & Alpes</title>
+<link href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0c0e13;
+    --panel:rgba(18,21,28,.72);
+    --panel-solid:#12151c;
+    --stroke:rgba(255,255,255,.10);
+    --stroke-strong:rgba(255,255,255,.18);
+    --txt:#f3f1ea;
+    --txt-dim:#a7adba;
+    --gold:#e8c06a;
+    --gold-soft:#f0d79a;
+    --d0:#f0b429; --d1:#e25563; --d2:#36b3a8; --d3:#ff8a65; --d4:#5d9cec; --d5:#a78bfa;
+    --shadow:0 18px 50px rgba(0,0,0,.55);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);
+    font-family:'Manrope',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  #map{position:absolute;inset:0}
+  h1,h2,h3,.serif{font-family:'Playfair Display',Georgia,serif}
+
+  /* ---------- TOP BAR ---------- */
+  .topbar{position:absolute;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;
+    gap:18px;padding:14px 20px;pointer-events:none;
+    background:linear-gradient(180deg,rgba(8,9,12,.72) 0%,rgba(8,9,12,0) 100%)}
+  .brand{pointer-events:auto;display:flex;align-items:center;gap:13px}
+  .brand .mark{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
+    background:linear-gradient(145deg,#e8c06a,#b8893a);color:#1a1206;font-size:20px;
+    box-shadow:0 6px 18px rgba(184,137,58,.4)}
+  .brand .t1{font-family:'Playfair Display',serif;font-size:19px;font-weight:600;letter-spacing:.3px;line-height:1}
+  .brand .t2{font-size:11px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold);margin-top:4px}
+  .topstats{pointer-events:auto;margin-left:auto;display:flex;gap:9px}
+  .stat{background:var(--panel);backdrop-filter:blur(14px);border:1px solid var(--stroke);
+    border-radius:12px;padding:7px 14px;text-align:center;min-width:78px}
+  .stat b{display:block;font-size:16px;font-weight:700;font-family:'Playfair Display',serif}
+  .stat span{font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--txt-dim)}
+
+  /* ---------- SIDEBAR ---------- */
+  .sidebar{position:absolute;top:78px;left:18px;bottom:18px;width:352px;z-index:20;
+    background:var(--panel);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border:1px solid var(--stroke);border-radius:20px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;overflow:hidden;transition:transform .45s cubic-bezier(.2,.9,.3,1)}
+  .sidebar.collapsed{transform:translateX(-380px)}
+  .side-head{padding:18px 20px 14px}
+  .side-head .eyebrow{font-size:10.5px;letter-spacing:2.5px;text-transform:uppercase;color:var(--gold)}
+  .side-head h2{margin:7px 0 0;font-size:23px;font-weight:600;line-height:1.15}
+  .side-head p{margin:8px 0 0;font-size:12.5px;color:var(--txt-dim);line-height:1.5}
+  .route-tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:0 16px 13px}
+  .route-tab{min-height:40px;border:1px solid var(--stroke);border-radius:11px;background:rgba(255,255,255,.035);
+    color:var(--txt-dim);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;transition:.18s}
+  .route-tab:hover{background:rgba(255,255,255,.08);color:var(--txt)}
+  .route-tab.active{background:linear-gradient(145deg,var(--gold),#c79a45);border-color:transparent;color:#1a1206}
+
+  .day-tabs{display:flex;gap:6px;padding:4px 16px 14px;flex-wrap:wrap}
+  .day-tab{flex:1;min-width:54px;border:1px solid var(--stroke);background:rgba(255,255,255,.03);
+    border-radius:10px;padding:8px 4px 7px;text-align:center;cursor:pointer;transition:.2s;position:relative}
+  .day-tab:hover{background:rgba(255,255,255,.07)}
+  .day-tab.active{border-color:var(--dc);background:color-mix(in srgb,var(--dc) 18%,transparent)}
+  .day-tab .dot{width:8px;height:8px;border-radius:50%;background:var(--dc);margin:0 auto 5px;
+    box-shadow:0 0 10px var(--dc)}
+  .day-tab .dn{font-size:11px;font-weight:700;letter-spacing:.3px}
+  .day-tab .dl{font-size:8.5px;color:var(--txt-dim);margin-top:1px}
+
+  .stops{flex:1;overflow-y:auto;padding:4px 14px 16px}
+  .stops::-webkit-scrollbar{width:7px}
+  .stops::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:10px}
+  .day-block{margin-bottom:14px}
+  .day-title{display:flex;align-items:center;gap:9px;padding:8px 6px 9px;font-size:12px;
+    letter-spacing:1.6px;text-transform:uppercase;color:var(--txt-dim);font-weight:600}
+  .day-title .bar{width:24px;height:3px;border-radius:3px;background:var(--dc)}
+
+  .stop{display:flex;gap:12px;padding:11px 12px;border-radius:13px;cursor:pointer;
+    border:1px solid transparent;transition:.18s;align-items:flex-start}
+  .stop:hover{background:rgba(255,255,255,.05);border-color:var(--stroke)}
+  .stop.active{background:color-mix(in srgb,var(--dc) 14%,transparent);border-color:var(--dc)}
+  .stop .ic{flex:none;width:34px;height:34px;border-radius:9px;display:grid;place-items:center;
+    font-size:16px;background:color-mix(in srgb,var(--dc) 22%,#1a1d24);border:1px solid color-mix(in srgb,var(--dc) 45%,transparent)}
+  .stop .meta{flex:1;min-width:0}
+  .stop .nm{font-size:14px;font-weight:600;line-height:1.2}
+  .stop .tm{font-size:10.5px;color:var(--gold);letter-spacing:.6px;margin-top:3px;font-weight:600}
+  .stop .ds{font-size:11.5px;color:var(--txt-dim);margin-top:4px;line-height:1.4;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+  /* ---------- DETAIL CARD ---------- */
+  .detail{position:absolute;right:18px;top:78px;width:370px;max-height:calc(100% - 110px);z-index:25;
+    background:var(--panel);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
+    border:1px solid var(--stroke);border-radius:20px;box-shadow:var(--shadow);overflow:hidden;
+    display:flex;flex-direction:column;transform:translateX(420px);opacity:0;transition:.45s cubic-bezier(.2,.9,.3,1)}
+  .detail.show{transform:translateX(0);opacity:1}
+  .detail .hero{padding:20px 22px 16px;background:linear-gradient(160deg,color-mix(in srgb,var(--dc) 30%,transparent),transparent)}
+  .detail .badge{display:inline-flex;align-items:center;gap:7px;font-size:10px;letter-spacing:1.6px;
+    text-transform:uppercase;font-weight:700;color:var(--dc);background:color-mix(in srgb,var(--dc) 16%,transparent);
+    border:1px solid color-mix(in srgb,var(--dc) 40%,transparent);padding:5px 11px;border-radius:30px}
+  .detail h3{margin:13px 0 3px;font-size:26px;font-weight:600;line-height:1.1}
+  .detail .tm2{font-size:12px;color:var(--gold-soft);letter-spacing:.6px;font-weight:600}
+  .detail .body{padding:4px 22px 22px;overflow-y:auto}
+  .detail .body::-webkit-scrollbar{width:7px}
+  .detail .body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:10px}
+  .detail .desc{font-size:13.5px;line-height:1.62;color:#dfe1e7;margin:14px 0 0}
+  .photo-card{display:none;margin:15px 0 0;border:1px solid var(--stroke);border-radius:14px;overflow:hidden;
+    background:rgba(255,255,255,.04)}
+  .photo-card.show{display:block}
+  .photo-card img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;background:#0a0d14}
+  .photo-card figcaption{padding:8px 11px;font-size:10.5px;line-height:1.4;color:var(--txt-dim)}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:15px}
+  .chip{font-size:11.5px;padding:6px 11px;border-radius:30px;background:rgba(255,255,255,.06);
+    border:1px solid var(--stroke);color:#e7e9ef}
+  .infobox{margin-top:15px;border:1px solid var(--stroke);border-radius:13px;overflow:hidden}
+  .inforow{display:flex;gap:11px;padding:11px 13px;font-size:12.5px;line-height:1.5}
+  .inforow+.inforow{border-top:1px solid var(--stroke)}
+  .inforow .ri{flex:none;font-size:15px;opacity:.9}
+  .inforow .rk{color:var(--gold);font-weight:600;display:block;font-size:10.5px;letter-spacing:1px;
+    text-transform:uppercase;margin-bottom:2px}
+  .inforow .rv{color:#dfe1e7}
+  .inforow .rv a,.modal a{color:var(--gold-soft);text-decoration:none;border-bottom:1px solid rgba(240,215,154,.35)}
+  .inforow .rv a:hover,.modal a:hover{border-bottom-color:var(--gold-soft)}
+  .detail .close{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;
+    border:1px solid var(--stroke);background:rgba(0,0,0,.35);color:#fff;cursor:pointer;font-size:16px;
+    display:grid;place-items:center;backdrop-filter:blur(6px);z-index:2}
+  .detail .close:hover{background:rgba(0,0,0,.6)}
+  .navbtns{display:flex;gap:9px;margin-top:18px}
+  .navbtns button{flex:1;padding:11px;border-radius:11px;border:1px solid var(--stroke);
+    background:rgba(255,255,255,.05);color:var(--txt);font-family:inherit;font-size:12.5px;font-weight:600;
+    cursor:pointer;transition:.18s}
+  .navbtns button:hover{background:rgba(255,255,255,.11)}
+  .navbtns .nb-go{background:linear-gradient(145deg,var(--gold),#c79a45);color:#1a1206;border:none}
+
+  /* ---------- BUDGET DOCK ---------- */
+  .dock{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:22;
+    display:flex;gap:8px;align-items:center;background:var(--panel);backdrop-filter:blur(18px);
+    border:1px solid var(--stroke);border-radius:16px;padding:8px;box-shadow:var(--shadow)}
+  .dock button{display:flex;align-items:center;gap:8px;border:none;background:transparent;color:var(--txt);
+    font-family:inherit;font-size:12.5px;font-weight:600;padding:9px 14px;border-radius:11px;cursor:pointer;transition:.18s}
+  .dock button:hover{background:rgba(255,255,255,.09)}
+  .dock .primary{background:linear-gradient(145deg,var(--gold),#c79a45);color:#1a1206}
+  .dock .primary:hover{filter:brightness(1.08)}
+  .dock .sep{width:1px;height:24px;background:var(--stroke)}
+  .dock .ic{font-size:15px}
+
+  /* ---------- BUDGET MODAL ---------- */
+  .overlay{position:absolute;inset:0;z-index:40;background:rgba(6,7,10,.62);backdrop-filter:blur(6px);
+    display:none;align-items:center;justify-content:center;padding:24px}
+  .overlay.show{display:flex}
+  .modal{width:min(560px,100%);max-height:86vh;overflow-y:auto;background:var(--panel-solid);
+    border:1px solid var(--stroke-strong);border-radius:22px;box-shadow:var(--shadow);padding:30px 32px}
+  .modal h2{margin:0 0 4px;font-size:27px;font-weight:600}
+  .modal .sub{color:var(--txt-dim);font-size:13px;margin-bottom:22px}
+  .btable{width:100%;border-collapse:collapse;font-size:13.5px}
+  .btable td{padding:11px 4px;border-bottom:1px solid var(--stroke)}
+  .btable td:last-child{text-align:right;font-weight:600;color:var(--gold-soft);white-space:nowrap}
+  .btable tr.tot td{border-bottom:none;border-top:1.5px solid var(--gold);padding-top:14px;font-size:15px;font-weight:700}
+  .btable tr.tot td:last-child{color:var(--gold)}
+  .note{margin-top:18px;font-size:12.5px;line-height:1.6;color:var(--txt-dim);
+    background:rgba(255,255,255,.04);border:1px solid var(--stroke);border-radius:13px;padding:14px 16px}
+  .plan-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+  .plan-card{background:rgba(255,255,255,.045);border:1px solid var(--stroke);border-radius:13px;padding:13px 14px;
+    font-size:12.5px;line-height:1.5;color:#dfe1e7}
+  .plan-card b{display:block;color:var(--gold-soft);font-size:13px;margin-bottom:4px}
+  .source-list{margin-top:14px;font-size:11.5px;line-height:1.55;color:#89909f}
+  .modal .x{float:right;margin:-8px -8px 0 0;width:34px;height:34px;border-radius:50%;border:1px solid var(--stroke);
+    background:transparent;color:#fff;cursor:pointer;font-size:17px}
+
+  /* ---------- INTRO ---------- */
+  .intro{position:absolute;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;text-align:center;padding:30px;
+    background:radial-gradient(120% 90% at 50% 20%,#1a2030 0%,#0a0c11 60%,#06070a 100%);
+    transition:opacity .9s ease,visibility .9s}
+  .intro.hide{opacity:0;visibility:hidden}
+  .intro .eyebrow{font-size:12px;letter-spacing:6px;text-transform:uppercase;color:var(--gold);margin-bottom:18px;
+    opacity:0;animation:rise .9s .15s forwards}
+  .intro h1{font-size:clamp(38px,7vw,76px);font-weight:600;line-height:1.02;margin:0;max-width:13ch;
+    opacity:0;animation:rise .9s .3s forwards}
+  .intro h1 em{font-style:italic;color:var(--gold-soft)}
+  .intro p{max-width:54ch;color:var(--txt-dim);font-size:15px;line-height:1.65;margin:22px 0 0;
+    opacity:0;animation:rise .9s .5s forwards}
+  .intro .route-line{display:flex;align-items:center;gap:10px;margin:26px 0 4px;flex-wrap:wrap;justify-content:center;
+    opacity:0;animation:rise .9s .65s forwards}
+  .intro .rl{font-size:12.5px;color:#cfd3dc;letter-spacing:.4px}
+  .intro .rl .arr{color:var(--gold);margin:0 2px}
+  .intro .go{margin-top:34px;padding:16px 38px;border:none;border-radius:40px;cursor:pointer;
+    font-family:inherit;font-weight:700;font-size:15px;letter-spacing:.4px;color:#1a1206;
+    background:linear-gradient(145deg,#f0d79a,#c79a45);box-shadow:0 14px 40px rgba(199,154,69,.4);
+    opacity:0;animation:rise .9s .85s forwards;transition:transform .2s}
+  .intro .go:hover{transform:translateY(-2px) scale(1.02)}
+  .intro .credit{position:absolute;bottom:22px;font-size:11px;color:#5a606e;letter-spacing:1px}
+  @keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+
+  /* ---------- MARKERS ---------- */
+  .mk{cursor:pointer}
+  .mk-in{position:relative;transform:translateY(-4px);transition:transform .2s ease;will-change:transform}
+  .mk:hover{z-index:5}
+  .mk:hover .mk-in{transform:translateY(-8px) scale(1.08)}
+  .mk .pin{width:34px;height:34px;border-radius:50% 50% 50% 2px;transform:rotate(45deg);
+    background:linear-gradient(145deg,color-mix(in srgb,var(--mc) 85%,#fff),var(--mc));
+    box-shadow:0 6px 16px rgba(0,0,0,.5),0 0 0 2px rgba(255,255,255,.25) inset;display:grid;place-items:center;
+    transition:width .2s,height .2s,border-radius .2s,box-shadow .2s,opacity .2s}
+  .mk .pin span{transform:rotate(-45deg);font-size:15px;line-height:1;filter:drop-shadow(0 1px 1px rgba(0,0,0,.4));
+    opacity:1;transition:opacity .18s}
+  .mk.active .pin{box-shadow:0 8px 22px rgba(0,0,0,.6),0 0 0 3px #fff inset,0 0 26px var(--mc)}
+  .mk .lbl{position:absolute;left:50%;top:40px;transform:translateX(-50%);white-space:nowrap;
+    font-size:10.5px;font-weight:700;letter-spacing:.3px;color:#fff;background:rgba(8,9,12,.78);
+    padding:3px 9px;border-radius:30px;border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(4px);
+    box-shadow:0 4px 10px rgba(0,0,0,.4);pointer-events:none;opacity:1;transition:opacity .18s,transform .18s}
+  body.zoom-overview .mk .pin{width:14px;height:14px;border-radius:50%;box-shadow:0 4px 12px rgba(0,0,0,.45),0 0 0 2px rgba(255,255,255,.35) inset}
+  body.zoom-overview .mk .pin span{opacity:0}
+  body.zoom-overview .mk .lbl,
+  body.zoom-icons .mk .lbl{opacity:0;transform:translateX(-50%) translateY(-4px)}
+  body.zoom-labels .mk .lbl{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* ---------- ROUTE LOADING TOAST ---------- */
+  .toast{position:absolute;left:50%;bottom:78px;transform:translateX(-50%) translateY(14px);z-index:35;
+    display:flex;align-items:center;gap:10px;background:var(--panel);backdrop-filter:blur(16px);
+    border:1px solid var(--stroke);border-radius:30px;padding:9px 16px;font-size:12.5px;font-weight:600;
+    color:var(--txt-dim);box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:.4s}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+  .spin{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.18);
+    border-top-color:var(--gold);animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  .maplibregl-popup{display:none}
+  .sidebtn{position:absolute;left:18px;top:78px;z-index:21;width:44px;height:44px;border-radius:13px;
+    background:var(--panel);backdrop-filter:blur(14px);border:1px solid var(--stroke);color:#fff;
+    cursor:pointer;font-size:18px;display:none;place-items:center;box-shadow:var(--shadow)}
+  .maplibregl-ctrl-attrib{font-size:9.5px!important;background:rgba(0,0,0,.4)!important}
+  .maplibregl-ctrl-attrib a{color:#9aa0ad!important}
+
+  @media (max-width:920px){
+    .detail{left:12px;right:12px;top:84px;width:auto;max-height:calc(100% - 116px)}
+    .topstats .stat:nth-child(3){display:none}
+  }
+  @media (max-width:680px){
+    .sidebar{top:auto;left:0;right:0;bottom:0;width:100%;height:46%;border-radius:20px 20px 0 0}
+    .sidebar.collapsed{transform:translateY(105%)}
+    .sidebtn{display:grid;top:auto;bottom:18px;left:18px}
+    .dock{bottom:auto;top:74px;left:18px;right:18px;transform:none;justify-content:center}
+    .topstats{display:none}
+    .plan-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div id="map"></div>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="brand">
+    <div class="mark">◈</div>
+    <div>
+      <div class="t1">Grand Tour</div>
+      <div class="t2" id="routeBrand">Riviera · Alpes</div>
+    </div>
+  </div>
+  <div class="topstats">
+    <div class="stat"><b id="kmStat">≈1 600</b><span>km</span></div>
+    <div class="stat"><b id="daysStat">5</b><span>jours</span></div>
+    <div class="stat"><b id="nightsStat">4</b><span>nuits</span></div>
+    <div class="stat"><b id="metaStat">3</b><span id="metaLabel">pays</span></div>
+  </div>
+</div>
+
+<button class="sidebtn" id="sidebtn">☰</button>
+
+<div class="toast" id="toast"><span class="spin"></span> Calcul des itinéraires routiers…</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="side-head">
+    <div class="eyebrow" id="routeEyebrow">Itinéraire</div>
+    <h2 id="routeTitle">Le Castellet → Moselle</h2>
+    <p id="routeLead">Un mini Grand Tour automobile : circuit, palaces, lacs italiens et grands cols suisses. Cliquez une étape pour vous y poser.</p>
+  </div>
+  <div class="route-tabs" id="routeTabs" aria-label="Choix d'itinéraire">
+    <button class="route-tab active" type="button" data-route="classic">Itinéraire 1</button>
+    <button class="route-tab" type="button" data-route="dolomites">Itinéraire 2</button>
+  </div>
+  <div class="day-tabs" id="dayTabs"></div>
+  <div class="stops" id="stops"></div>
+</aside>
+
+<!-- DETAIL CARD -->
+<section class="detail" id="detail">
+  <button class="close" id="detailClose">×</button>
+  <div class="hero">
+    <span class="badge" id="dBadge"></span>
+    <h3 id="dTitle"></h3>
+    <div class="tm2" id="dTime"></div>
+  </div>
+  <div class="body">
+    <figure class="photo-card" id="dMedia">
+      <img id="dPhoto" alt="" loading="lazy" />
+      <figcaption id="dPhotoCap"></figcaption>
+    </figure>
+    <p class="desc" id="dDesc"></p>
+    <div class="chips" id="dChips"></div>
+    <div class="infobox" id="dInfo"></div>
+    <div class="navbtns">
+      <button id="dPrev">‹ Étape</button>
+      <button class="nb-go" id="dFly">↻ Survoler</button>
+      <button id="dNext">Étape ›</button>
+    </div>
+  </div>
+</section>
+
+<!-- DOCK -->
+<div class="dock">
+  <button class="primary" id="playBtn"><span class="ic">▶</span> Visite guidée</button>
+  <div class="sep"></div>
+  <button id="resetBtn"><span class="ic">🌍</span> Vue d'ensemble</button>
+  <button id="budgetBtn"><span class="ic">€</span> Budget</button>
+</div>
+
+<!-- BUDGET MODAL -->
+<div class="overlay" id="budgetOverlay">
+  <div class="modal">
+    <button class="x" id="budgetClose">×</button>
+    <h2 id="budgetTitle">Budget réaliste</h2>
+    <div class="sub" id="budgetSub"></div>
+    <table class="btable" id="budgetTable"></table>
+    <div class="note" id="budgetNote"></div>
+    <div class="plan-grid" id="budgetPlans"></div>
+    <div class="source-list" id="budgetSources"></div>
+  </div>
+</div>
+
+<!-- INTRO -->
+<div class="intro" id="intro">
+  <div class="eyebrow">Départ lundi matin · 5 jours</div>
+  <h1>De la <em>Riviera</em> aux <em>grands cols</em> suisses</h1>
+  <p>Départ probable le lundi matin depuis le Circuit Paul Ricard, puis Saint-Tropez, Monaco, Milan, le lac de Côme et la légendaire enfilade Gothard – Furka – Grimsel. L'onglet Itinéraire 2 garde Côme puis propose les Dolomites, Munich et Stuttgart.</p>
+  <div class="route-line">
+    <span class="rl">Le Castellet<span class="arr">→</span>St-Tropez<span class="arr">→</span>Monaco<span class="arr">→</span>Milan<span class="arr">→</span>Côme<span class="arr">→</span>Furka·Grimsel<span class="arr">→</span>Lucerne<span class="arr">→</span>Moselle</span>
+  </div>
+  <button class="go" id="introGo">Embarquer →</button>
+  <div class="credit">Relief 3D · 2 doigts pour naviguer · pince pour zoomer</div>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<script>
+/* ============ DATA ============ */
+const COMMON_STOPS = [
+  { day:0, type:'circuit', icon:'🏁', name:'Circuit Paul Ricard', tag:'Départ',
+    coord:[5.7916,43.2506], cam:{zoom:13.2,pitch:62,bearing:30},
+    time:'Lundi matin · Départ',
+    desc:'Le point de départ : le mythique circuit du Castellet. Départ probable le lundi matin, cap à l\'ouest vers Saint-Tropez — 1h30 à 2h30 selon le trafic estival.',
+    chips:['Lignes de départ','Cap Côte d\'Azur'],
+    info:[['🚗','Trajet suivant','Le Castellet → Saint-Tropez · 1h30–2h30']] },
+
+  { day:0, type:'city', icon:'⛵', name:'Saint-Tropez', tag:'Étape',
+    coord:[6.6407,43.2727], cam:{zoom:14.4,pitch:58,bearing:-20},
+    time:'Lundi · fin de matinée / midi',
+    desc:'Arrivée par la route côtière. Port et yachts, place des Lices, balade entre les boutiques, un verre en terrasse et déjeuner rapide sur le port. Quelques heures suffisent — on ne dort pas ici.',
+    chips:['Port & yachts','Place des Lices','Coucher de soleil','Un verre terrasse'],
+    info:[
+      ['🅿️','Stationnement','Parking du Nouveau Port (1 400+ places). Voirie ~3 €/h, payant jusqu\'à 1h en été.'],
+      ['€','Budget','Verre 10–18 € · Parking 5–12 €/voiture']
+    ] },
+
+  { day:0, type:'night', icon:'🌙', name:'Nuit · Saint-Raphaël', tag:'Nuit',
+    coord:[6.7686,43.4253], cam:{zoom:13.5,pitch:55,bearing:0},
+    time:'Lundi · Nuit',
+    desc:'Nuit stratégique pour prendre de l\'avance vers Monaco. On évite Saint-Tropez (budget) au profit de Fréjus / Saint-Raphaël, plus au nord-est sur la route.',
+    chips:['Fréjus / Saint-Raphaël','Avance sur Monaco'],
+    info:[
+      ['🏠','Airbnb réel','<a href="https://www.airbnb.fr/s/Saint~Rapha%C3%ABl--France/homes" target="_blank" rel="noopener">Recherche Airbnb Saint-Raphaël / Fréjus</a> · viser un logement simple autour de 80 €/nuit pour 2.'],
+      ['€','Budget cible','~40–50 € / pers pour la nuit. Si ça dépasse 110 €/nuit, chercher Fréjus ou camping.']
+    ] },
+
+  { day:1, type:'city', icon:'🎰', name:'Monaco', tag:'Temps fort',
+    coord:[7.4276,43.7395], cam:{zoom:14.6,pitch:60,bearing:25},
+    time:'Mardi · 10h30–15h30',
+    desc:'Un « Monaco automobile » plutôt qu\'une visite classique : entrée par la Moyenne ou la Grande Corniche, tunnel du Grand Prix, épingle du Fairmont, Port Hercule, Place du Casino, Hôtel de Paris, Carré d\'Or et Larvotto. La Place du Casino en fin de matinée pour les belles voitures.',
+    chips:['Épingle du Fairmont','Place du Casino','Tunnel du GP','Rooftop Amù'],
+    info:[
+      ['🅿️','Astuce parking','Parking des Salines à l\'entrée de Monaco : tarif préférentiel + bus inclus vers le centre.'],
+      ['🍸','Rooftop','Amù au Fairmont, au-dessus de l\'épingle. Un seul verre : 12–25 €/pers.'],
+      ['🚗','Vers Milan','Monaco → Milan · 3h30–4h30 (hors ralentissements ligures)']
+    ] },
+
+  { day:1, type:'city', icon:'🌆', name:'Milan', tag:'Soir + matin',
+    coord:[9.1900,45.4642], cam:{zoom:14.8,pitch:56,bearing:-15},
+    time:'Mardi soir · arrivée 20h–21h',
+    desc:'Même tardive, l\'arrivée vaut le coup : Duomo illuminé, Galleria Vittorio Emanuele II, quartier de Brera, aperitivo ou rooftop (SunEleven, ~500 m du Duomo). Le lendemain matin : café italien, Quadrilatero della Moda, ou musée Alfa Romeo à Arese pour les fans.',
+    chips:['Duomo illuminé','Galleria V. Emanuele','Brera','Aperitivo','Musée Alfa Romeo'],
+    info:[
+      ['🏠','Airbnb réel','Les beaux Airbnbs milanais montent vite ; pour tenir 350 €, <a href="https://www.airbnb.fr/s/Milan--Italy/homes" target="_blank" rel="noopener">chercher Milan</a> côté Lambrate, Bicocca, Sesto ou Città Studi.'],
+      ['€','Budget cible','~45–60 € / pers pour la nuit. Le centre devient une visite, pas un endroit où dormir.']
+    ] },
+
+  { day:2, type:'city', icon:'🛶', name:'Lac de Côme', tag:'Demi-journée',
+    coord:[9.0852,45.8081], cam:{zoom:13.4,pitch:62,bearing:35},
+    time:'Mercredi · après-midi',
+    desc:'Milan → Côme en ~1h. Centre, bord du lac, puis funiculaire vers Brunate. Option route automobile plus spectaculaire mais lente : Côme → Torno → Nesso → Bellagio (route étroite, peu de parking).',
+    chips:['Bord du lac','Funiculaire Brunate','Option Bellagio'],
+    info:[
+      ['🚗','Depuis Milan','~1h (davantage avec circulation)'],
+      ['🏠','Airbnb réel','Les beaux Airbnbs du lac montent vite : pour budget, <a href="https://www.airbnb.fr/s/Como--Italy/homes" target="_blank" rel="noopener">chercher Côme</a>, puis basculer vers périphérie ou avancer vers Bolzano si les prix grimpent.']
+    ] },
+
+  { day:2, type:'view', icon:'📷', name:'Brunate · Faro Voltiano', tag:'Panorama',
+    coord:[9.1006,45.8167], cam:{zoom:14.2,pitch:64,bearing:-40},
+    time:'Mercredi · fin d\'après-midi',
+    desc:'Au sommet du funiculaire : montée vers le Faro Voltiano (phare), panorama plongeant sur le lac et petite randonnée. La meilleure promenade panoramique sans sacrifier toute la journée.',
+    chips:['Phare Voltiano','Vue plongeante','Petite rando'],
+    photo:{
+      src:'https://commons.wikimedia.org/wiki/Special:FilePath/Faro%20Voltiano%20Brunate.jpg?width=900',
+      alt:'Faro Voltiano au-dessus de Brunate, près du lac de Côme',
+      cap:'Brunate · Faro Voltiano : la rando facile de l’itinéraire, parfaite pour voir Côme d’en haut.'
+    },
+    info:[
+      ['🚠','Accès','Funiculaire depuis Côme, puis montée au phare.'],
+      ['🥾','Rando facile','Brunate → Faro Voltiano : environ 1,8 km, 200 m D+, 1h à 1h15 à pied.']
+    ] },
+];
+
+const ROUTES = {
+  classic:{
+    label:'Itinéraire 1',
+    brand:'Riviera · Alpes',
+    eyebrow:'Itinéraire',
+    title:'Le Castellet → Moselle',
+    lead:'Un mini Grand Tour automobile : circuit, palaces, lacs italiens et grands cols suisses. Cliquez une étape pour vous y poser.',
+    stats:{km:'≈1 600',days:'5',nights:'4',meta:'3',metaLabel:'pays'},
+    days:[
+      {n:'Lun.', label:'Riviera',  full:'Lundi · Circuit → Saint-Tropez', color:'#f0b429'},
+      {n:'Mar.', label:'Monaco',   full:'Mardi · Monaco → Milan',            color:'#e25563'},
+      {n:'Mer.', label:'Côme',     full:'Mercredi · Milan → Lac de Côme',       color:'#36b3a8'},
+      {n:'Jeu.', label:'Cols',     full:'Jeudi · Gothard · Furka · Grimsel', color:'#5d9cec'},
+      {n:'Ven.', label:'Retour',   full:'Vendredi · Lucerne → Moselle',         color:'#a78bfa'},
+    ],
+    stops:[
+      ...COMMON_STOPS,
+      { day:2, type:'night', icon:'🌙', name:'Nuit · Chiasso / Lugano', tag:'Nuit',
+        coord:[8.9511,46.0037], cam:{zoom:12.8,pitch:55,bearing:0},
+        time:'Mercredi · Nuit',
+        desc:'Dormir côté frontière pour préparer la Suisse : Côme périphérie, Chiasso, Lugano périphérie ou Bellinzona, qui est plus logique pour le Gothard.',
+        chips:['Frontière suisse','Prêt pour les cols'],
+        info:[
+          ['🏠','Airbnb réel','<a href="https://www.airbnb.fr/s/Como--Italy/homes" target="_blank" rel="noopener">Chercher Côme</a>, Chiasso ou Lugano périphérie · viser 75–110 €/nuit pour 2.'],
+          ['€','Budget cible','~38–55 €/pers pour la nuit.']
+        ] },
+
+      { day:3, type:'city', icon:'🏰', name:'Bellinzona', tag:'En route',
+        coord:[9.0175,46.1944], cam:{zoom:13.6,pitch:60,bearing:20},
+        time:'Jeudi · matin',
+        desc:'Sur la route des cols : les châteaux UNESCO de Bellinzona dominent la vallée. Une pause photo avant de remonter vers Airolo et le Saint-Gothard.',
+        chips:['Châteaux UNESCO','Porte des Alpes'],
+        info:[['🚗','Suite','Bellinzona → Airolo → Saint-Gothard']] },
+
+      { day:3, type:'pass', icon:'🪨', name:'Col du Saint-Gothard', tag:'Col mythique',
+        coord:[8.5614,46.5556], cam:{zoom:13.8,pitch:68,bearing:-30},
+        time:'Jeudi · matin',
+        desc:'Au lieu du seul tunnel, emprunter — si ouverte — l\'ancienne route historique de la Tremola et ses lacets pavés. L\'un des cols les plus emblématiques de Suisse, parfait pour ouvrir la grande journée automobile.',
+        chips:['Ancienne route Tremola','Lacets pavés','Alt. 2 106 m'],
+        info:[['🛣️','Tracé','Airolo → Gothard → Andermatt']] },
+
+      { day:3, type:'city', icon:'🏔️', name:'Andermatt', tag:'Carrefour alpin',
+        coord:[8.5942,46.6364], cam:{zoom:13.8,pitch:64,bearing:15},
+        time:'Jeudi · midi',
+        desc:'Village alpin chic au carrefour des cols. Pause avant d\'attaquer le clou du voyage : la Furka. Plein, café, et on grimpe.',
+        chips:['Village alpin','Base de la Furka'],
+        info:[['🚗','Suite','Andermatt → Col de la Furka']] },
+
+      { day:3, type:'pass', icon:'❄️', name:'Col de la Furka', tag:'Le clou du voyage',
+        coord:[8.4150,46.5725], cam:{zoom:13.6,pitch:70,bearing:-25},
+        time:'Jeudi · après-midi',
+        desc:'2 429 m, rendu célèbre par le James Bond « Goldfinger ». L\'un des panoramas routiers les plus reconnaissables de Suisse. Arrêts : belvédère sur les lacets, ancien hôtel Belvédère, glacier du Rhône, sommet du col.',
+        chips:['Alt. 2 429 m','Goldfinger 007','Glacier du Rhône','Hôtel Belvédère'],
+        photo:{
+          src:'https://commons.wikimedia.org/wiki/Special:FilePath/Furkapass%20westside.jpg?width=900',
+          alt:'Route en lacets du col de la Furka dans les Alpes suisses',
+          cap:'Furka : arrêt photo + marche courte vers le secteur du glacier du Rhône, pas une grosse rando.'
+        },
+        info:[
+          ['📅','Ouverture','Juin → octobre selon enneigement.'],
+          ['📸','Spot','Belvédère sur les lacets + glacier du Rhône.'],
+          ['🥾','Marche courte','Depuis le secteur Hôtel Belvédère / glacier du Rhône : petite marche vers le point de vue et la zone du glacier.']
+        ] },
+
+      { day:3, type:'view', icon:'🔀', name:'Gletsch', tag:'Bifurcation',
+        coord:[8.3636,46.5614], cam:{zoom:14,pitch:66,bearing:0},
+        time:'Jeudi · après-midi',
+        desc:'Le hameau au creux de la vallée où l\'on bascule de la Furka vers le Grimsel. Point de vue sur les lacets qui montent de part et d\'autre.',
+        chips:['Jonction Furka/Grimsel','Vue lacets'],
+        info:[['🛣️','Tracé','Gletsch → Col du Grimsel']] },
+
+      { day:3, type:'pass', icon:'⛰️', name:'Col du Grimsel', tag:'Pépite brute',
+        coord:[8.3372,46.5614], cam:{zoom:13.7,pitch:71,bearing:-35},
+        time:'Jeudi · fin d\'après-midi',
+        desc:'2 164 m, paysage de granite et de retenues d\'eau monumentales : Räterichsbodensee, Grimselsee, Totensee. Probablement le spot peu connu mais incroyable le plus fort du voyage. Petite marche possible autour du Totensee.',
+        chips:['Alt. 2 164 m','Granite & barrages','Totensee','Mini-rando 45 min'],
+        photo:{
+          src:'https://commons.wikimedia.org/wiki/Special:FilePath/Grimselpass-passh%C3%B6he01.jpg?width=900',
+          alt:'Totensee au sommet du col du Grimsel en Suisse',
+          cap:'Grimsel / Totensee : la mini-rando la plus simple et la plus rentable de la journée cols.'
+        },
+        info:[
+          ['📅','Ouverture','Juin → octobre selon enneigement.'],
+          ['🥾','Mini-rando','Tour / berges du Totensee : 45 min à 1h30 selon la boucle et les arrêts photo.'],
+          ['🎟️','Vignette suisse','40 CHF/voiture, à partager.']
+        ] },
+
+      { day:3, type:'night', icon:'🌙', name:'Nuit · Meiringen', tag:'Nuit',
+        coord:[8.1864,46.7269], cam:{zoom:13.2,pitch:58,bearing:10},
+        time:'Jeudi · Nuit',
+        desc:'Descente vers la vallée : Meiringen, Brienz ou Interlaken périphérie. Éviter Andermatt / Interlaken centre si les tarifs dépassent le plafond.',
+        chips:['Meiringen / Brienz','Repos après les cols'],
+        info:[
+          ['🏠','Airbnb réel','<a href="https://www.airbnb.fr/s/Meiringen--Switzerland/homes" target="_blank" rel="noopener">Chercher Meiringen</a>, Brienz ou Interlaken périphérie.'],
+          ['€','Budget cible','45–65 €/pers pour une chambre simple à deux.']
+        ] },
+
+      { day:4, type:'pass', icon:'🛣️', name:'Col du Brünig', tag:'Dernier col',
+        coord:[8.1389,46.7583], cam:{zoom:13.8,pitch:62,bearing:-15},
+        time:'Vendredi · matin',
+        desc:'Le passage fluide et verdoyant qui relie Meiringen au lac des Quatre-Cantons. Un dernier col tranquille avant Lucerne.',
+        chips:['Col verdoyant','Vers Lucerne'],
+        photo:{
+          src:'https://commons.wikimedia.org/wiki/Special:FilePath/Br%C3%BCnig%20Passhoehe%20mit%20Bahnhof.jpg?width=900',
+          alt:'Sommet du col du Brünig avec la gare du Brünig-Hasliberg',
+          cap:'Brünig : plutôt un passage panoramique qu’une rando courte, sauf si vous partez vers le Brienzer Rothorn.'
+        },
+        info:[
+          ['🚗','Suite','Brünig → Lucerne'],
+          ['🥾','Option rando','Le col sert de départ/arrivée à des randos plus longues, notamment vers le Brienzer Rothorn. À garder seulement si vous voulez marcher plus longtemps.']
+        ] },
+
+      { day:4, type:'city', icon:'🦢', name:'Lucerne', tag:'Suisse chic',
+        coord:[8.3093,47.0502], cam:{zoom:14.4,pitch:58,bearing:25},
+        time:'Vendredi · midi',
+        desc:'L\'option la plus logique du retour : centre historique, pont de la Chapelle, lac, hôtels et belles voitures. L\'image Suisse chic au bord d\'un lac, avec moins de kilomètres qu\'un détour par Zurich ou Genève.',
+        chips:['Pont de la Chapelle','Lac des 4-Cantons','Vieille ville'],
+        info:[['🔄','Alternative','Zurich ajoute environ 1h–1h30. À la place, pas en plus.']] },
+
+      { day:4, type:'city', icon:'🌉', name:'Bâle', tag:'Transit',
+        coord:[7.5886,47.5596], cam:{zoom:13.4,pitch:55,bearing:0},
+        time:'Vendredi · après-midi',
+        desc:'Point de passage naturel vers la France et l\'Allemagne. On remonte plein nord vers la Moselle.',
+        chips:['Frontière','Cap vers la Moselle'],
+        info:[['🚗','Retour','Lucerne/Bâle → Moselle · 4h30–5h30']] },
+
+      { day:4, type:'home', icon:'🏁', name:'Moselle', tag:'Arrivée',
+        coord:[6.1757,49.1193], cam:{zoom:11.5,pitch:50,bearing:0},
+        time:'Vendredi · soir',
+        desc:'Retour à la maison après environ 1 600 km : circuit, palaces, lacs italiens et grands cols. Le parcours le plus automobile, prestigieux et visuellement fort, tout en restant défendable côté budget.',
+        chips:['Fin du Grand Tour','≈ 1 600 km'],
+        info:[['🏆','Bilan','5 jours · 4 nuits · France, Monaco, Italie, Suisse · grands cols']] },
+    ],
+    budget:{
+      title:'Budget réaliste · Itinéraire 1',
+      sub:'Par personne · chambre partagée à deux · hors carburant',
+      rows:[
+        ['🏠 Nuit Fréjus / Saint-Raphaël','~40 €'],
+        ['🏠 Nuit Milan périphérie','~45 €'],
+        ['🏠 Nuit Côme / Chiasso','~45 €'],
+        ['🏠 Nuit Meiringen / Interlaken','~55 €'],
+        ['🎟️ Vignette suisse partagée','~21 €'],
+        ['🛣️ Péages France + Italie partagés','35–50 €'],
+        ['🅿️ Parkings partagés','15–25 €'],
+        ['🍸 Un rooftop / verre prestige','15–20 €'],
+        ['🏛️ Une activité payante','0–18 €'],
+        ['Total hors essence & repas','271–319 €','tot']
+      ],
+      note:'<b>Avec repas simples</b> sur 5 jours, comptez <b style="color:var(--gold-soft)">+75 à 110 €</b>, soit un budget global réaliste de <b style="color:var(--gold-soft)">≈380–420 € / pers</b> hors essence. À conserver absolument : Furka + Grimsel, coeur du road-trip.',
+      plans:[
+        {title:'À garder',text:'Furka + Grimsel : c\'est le moment fort de l\'itinéraire 1.'},
+        {title:'Randos à viser',text:'Brunate = facile au lac de Côme. Furka = marche courte glacier. Grimsel / Totensee = mini-rando la plus belle. Brünig = option longue vers Brienzer Rothorn.'},
+        {title:'À éviter pour le budget',text:'Nuit à Monaco/Saint-Tropez, Zurich en plus, restaurants très touristiques.'}
+      ],
+      sources:'Repères : <a href="https://www.airbnb.fr/s/Saint~Rapha%C3%ABl--France/homes" target="_blank" rel="noopener">Airbnb Saint-Raphaël</a>, <a href="https://www.airbnb.fr/s/Milan--Italy/homes" target="_blank" rel="noopener">Airbnb Milan</a>, <a href="https://www.airbnb.fr/s/Como--Italy/homes" target="_blank" rel="noopener">Airbnb Côme</a>. Randos/images : <a href="https://it.wikipedia.org/wiki/Faro_Voltiano" target="_blank" rel="noopener">Faro Voltiano</a>, <a href="https://en.wikipedia.org/wiki/Furka_Pass" target="_blank" rel="noopener">Furka</a>, <a href="https://fr.wikipedia.org/wiki/Glacier_du_Rh%C3%B4ne" target="_blank" rel="noopener">glacier du Rhône</a>, <a href="https://en.wikipedia.org/wiki/Grimsel_Pass" target="_blank" rel="noopener">Grimsel</a>, <a href="https://en.wikipedia.org/wiki/Br%C3%BCnig_Pass" target="_blank" rel="noopener">Brünig</a>. Températures : <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, prévisions 13–18 juillet 2026.'
+    }
+  },
+  dolomites:{
+    label:'Itinéraire 2',
+    brand:'Itinéraire 2 · Dolomites',
+    eyebrow:'Itinéraire 2',
+    title:'Côme → Dolomites → Allemagne',
+    lead:'Même début jusqu\'à Côme, puis on évite la Suisse : Dolomites, Autriche, Munich, Stuttgart, puis Moselle. Les fiches avec photo servent à choisir les spots forts.',
+    stats:{km:'≈2 050',days:'6',nights:'5',meta:'AT OK',metaLabel:'vignette'},
+    days:[
+      {n:'Lun.', label:'Riviera',  full:'Lundi · Circuit → Saint-Tropez', color:'#f0b429'},
+      {n:'Mar.', label:'Monaco',   full:'Mardi · Monaco → Milan',            color:'#e25563'},
+      {n:'Mer.', label:'Côme',     full:'Mercredi · Milan → Lac de Côme',       color:'#36b3a8'},
+      {n:'Jeu.', label:'Dolomites', full:'Jeudi · Passo Gardena · Cadini', color:'#ff8a65'},
+      {n:'Ven.', label:'Autriche', full:'Vendredi · Grossglockner · Munich',    color:'#5d9cec'},
+      {n:'Sam.', label:'Retour',   full:'Samedi · Stuttgart → Moselle',    color:'#a78bfa'},
+    ],
+    stops:[
+      ...COMMON_STOPS,
+      { day:2, type:'night', icon:'🌙', name:'Nuit · Bolzano / Val Gardena', tag:'Nuit',
+        coord:[11.3548,46.4983], cam:{zoom:12.6,pitch:58,bearing:15},
+        time:'Mercredi · Nuit',
+        desc:'Après Côme, on met le cap sur le Tyrol du Sud. Bolzano est moins cher et plus pratique que Cortina ; Ortisei / Val Gardena est plus beau mais souvent plus cher. C\'est la base logique pour attaquer les cols dolomitiques.',
+        chips:['Bolzano','Val Gardena','Base Dolomites','Pas de Suisse'],
+        info:[
+          ['🏠','Airbnb réel','<a href="https://www.airbnb.fr/s/Bolzano--Italy/homes" target="_blank" rel="noopener">Chercher Bolzano</a> ou périphérie · viser 80–120 €/nuit pour 2.'],
+          ['🚗','Depuis Côme','Côme → Bolzano / Val Gardena : environ 3h30–4h30 selon trafic et pause.'],
+          ['€','Budget cible','40–60 €/pers pour la nuit, ou camping si vous voulez rester très bas.']
+        ] },
+
+      { day:3, type:'pass', icon:'🛣️', name:'Passo Gardena / Sella', tag:'Cols dolomitiques',
+        coord:[11.8085,46.5490], cam:{zoom:13.5,pitch:70,bearing:-35},
+        time:'Jeudi · matin',
+        desc:'Le vrai coeur montagne de cet itinéraire : Gardena, Sella, Pordoi si vous avez le temps. Routes gratuites, vues très ouvertes, falaises des Dolomites tout autour. C\'est le meilleur compromis beauté / budget.',
+        chips:['Passo Gardena','Passo Sella','Sellaronda','Gratuit hors parking'],
+        photo:{
+          src:'https://commons.wikimedia.org/wiki/Special:FilePath/Langkofel%20group%20from%20Sellajoch%20Col%20Rodella%20Fassa.jpg?width=900',
+          alt:'Vue du groupe du Langkofel depuis le Sella Pass dans les Dolomites',
+          cap:'Passo Sella / Gardena : les cols dolomitiques donnent le gros effet “wow” sans péage de col spécifique.'
+        },
+        info:[
+          ['🛣️','Tracé','Val Gardena → Passo Gardena → Passo Sella → Canazei ou Cortina selon météo.'],
+          ['€','Coût','Routes de col gratuites. Prévoir surtout parking, essence et pauses.'],
+          ['💡','Choix','À garder si vous voulez un vrai moment col sans gros péage.']
+        ] },
+
+      { day:3, type:'hike', icon:'🥾', name:'Cadini di Misurina', tag:'Rando photo',
+        coord:[12.2958,46.6048], cam:{zoom:13.8,pitch:72,bearing:22},
+        time:'Jeudi · après-midi',
+        desc:'La rando que tu avais en tête : aiguilles ultra découpées, ambiance très Dolomites, point de vue court depuis le secteur Rifugio Auronzo. C\'est le spot le plus photogénique de l\'itinéraire 2.',
+        chips:['Cadini viewpoint','Tre Cime','Rando courte','Très photogénique'],
+        photo:{
+          src:'https://commons.wikimedia.org/wiki/Special:FilePath/Cadini%20di%20Misurina%20Lavaredo%204.jpg?width=900',
+          alt:'Aiguilles rocheuses des Cadini di Misurina dans les Dolomites',
+          cap:'Cadini di Misurina : le choix rando le plus spectaculaire si vous voulez une vraie image de Dolomites.'
+        },
+        info:[
+          ['🥾','Rando','Point de vue Cadini : environ 3 km à 4 km selon départ, souvent moins de 2 h aller-retour.'],
+          ['🅿️','Accès','Secteur Tre Cime / Rifugio Auronzo : accès et parking à vérifier selon saison, parfois cher.'],
+          ['⛺','Dormir','Camping ou logement simple autour de Misurina, Dobbiaco, Auronzo ou Cortina périphérie.']
+        ] },
+
+      { day:3, type:'night', icon:'⛺', name:'Nuit · Dobbiaco / Lienz', tag:'Nuit',
+        coord:[12.2227,46.7345], cam:{zoom:12.9,pitch:58,bearing:-15},
+        time:'Jeudi · Nuit',
+        desc:'Après Cadini, dormir côté Dobbiaco, San Candido ou Lienz. Lienz est souvent plus pratique pour repartir vers l\'Autriche et Munich sans repasser par la Suisse.',
+        chips:['Dobbiaco','San Candido','Lienz','Camping possible'],
+        info:[
+          ['⛺','Plan budget','Camping officiel ou chambre très simple : c\'est la nuit qui garde l\'itinéraire 2 raisonnable.'],
+          ['🚗','Suite','Le lendemain : soit Grossglockner payant, soit route plus directe vers Innsbruck / Munich.']
+        ] },
+
+      { day:4, type:'pass', icon:'🏔️', name:'Grossglockner Hochalpenstrasse', tag:'Option col autrichien',
+        coord:[12.8124,47.0830], cam:{zoom:12.8,pitch:72,bearing:-30},
+        time:'Vendredi · matin',
+        desc:'L\'option grand col autrichien. C\'est probablement le plus fort visuellement côté voiture, mais attention : même avec la vignette autrichienne, la route du Grossglockner est un péage séparé.',
+        chips:['Autriche','Route panoramique','Péage séparé','Option premium'],
+        photo:{
+          src:'https://commons.wikimedia.org/wiki/Special:FilePath/Grossglockner%20road.jpg?width=900',
+          alt:'Route panoramique du Grossglockner dans les Alpes autrichiennes',
+          cap:'Grossglockner : le choix “route mythique”, très beau mais payant en plus de la vignette.'
+        },
+        info:[
+          ['€','Budget','À garder si vous acceptez environ +20–25 €/pers à deux, plus le détour essence.'],
+          ['🔄','Alternative gratuite','Si budget serré : Dobbiaco → Innsbruck → Munich sans Grossglockner.'],
+          ['📅','Ouverture','Route saisonnière, généralement printemps/été à automne : vérifier avant départ.']
+        ] },
+
+      { day:4, type:'city', icon:'🍺', name:'Munich', tag:'Soirée',
+        coord:[11.5820,48.1351], cam:{zoom:13.5,pitch:55,bearing:20},
+        time:'Vendredi · soir',
+        desc:'Arrivée en Bavière : Marienplatz, Englischer Garten, Olympiapark ou simple soirée biergarten. Munich devient la grande ville chic du retour, avec plus d\'ambiance et souvent plus simple côté route.',
+        chips:['Marienplatz','Biergarten','Olympiapark','Ville étape'],
+        info:[
+          ['🏠','Airbnb réel','<a href="https://www.airbnb.fr/s/Munich--Germany/homes" target="_blank" rel="noopener">Chercher Munich</a> ou Augsbourg si Munich est trop cher.'],
+          ['€','Budget cible','50–70 €/pers pour une nuit simple à deux ; moins si auberge ou périphérie.']
+        ] },
+
+      { day:5, type:'city', icon:'🏎️', name:'Stuttgart', tag:'Auto stop',
+        coord:[9.1829,48.7758], cam:{zoom:13.4,pitch:55,bearing:-15},
+        time:'Samedi · midi',
+        desc:'Pause allemande logique avant la Moselle : Mercedes-Benz Museum ou Porsche Museum si vous voulez rester dans le thème automobile du road-trip.',
+        chips:['Mercedes Museum','Porsche Museum','Pause Allemagne'],
+        info:[
+          ['🚗','Depuis Munich','Munich → Stuttgart : environ 2h30–3h30 selon trafic.'],
+          ['💡','Choix','Mercedes = histoire auto complète ; Porsche = plus court, plus sportif.']
+        ] },
+
+      { day:5, type:'home', icon:'🏁', name:'Moselle', tag:'Arrivée',
+        coord:[6.1757,49.1193], cam:{zoom:11.5,pitch:50,bearing:0},
+        time:'Samedi · soir',
+        desc:'Retour après l\'itinéraire 2 : Riviera, Milan, Côme, Dolomites, Autriche, Munich et Stuttgart. Plus long que la version Suisse, mais cohérent si tu as déjà la vignette autrichienne et veux voir Cadini.',
+        chips:['Fin itinéraire 2','≈ 2 000 km','Sans vignette suisse'],
+        info:[['🏆','Bilan','6 jours · 5 nuits · France, Monaco, Italie, Autriche, Allemagne · Cadini + Munich + Stuttgart']] },
+    ],
+    budget:{
+      title:'Budget · Itinéraire 2',
+      sub:'Par personne · base 2 voyageurs · vignette autrichienne déjà disponible',
+      rows:[
+        ['🏠 Nuit Saint-Raphaël / Fréjus','~40 €'],
+        ['🏠 Nuit Milan périphérie','~45 €'],
+        ['🏠 Nuit Côme / Bolzano budget','~45 €'],
+        ['⛺ Nuit Dolomites / Dobbiaco camping','25–35 €'],
+        ['🏠 Nuit Munich / Augsbourg budget','50–70 €'],
+        ['🥖 Repas simples sur 6 jours','90–120 €'],
+        ['🎟️ Vignette suisse','0 €'],
+        ['🎟️ Vignette autrichienne','0 € déjà prise'],
+        ['🛣️ Péages France + Italie + Brenner','55–80 €'],
+        ['🅿️ Parkings / Tre Cime / extras','25–55 €'],
+        ['🏔️ Grossglockner option payante','+20–25 €/pers'],
+        ['Total hors essence','≈375–470 €','tot']
+      ],
+      note:'<b>Essence à ajouter :</b> avec ≈2 000–2 150 km, une conso de 6,5 L/100 km et un carburant à 1,90–2,00 €/L, comptez <b style="color:var(--gold-soft)">≈247–280 € / voiture</b>. Donc ≈124–140 €/pers à deux, ≈82–93 €/pers à trois, ou ≈62–70 €/pers à quatre.',
+      plans:[
+        {title:'Pourquoi ça marche mieux pour toi',text:'Pas de vignette suisse à acheter, et tu utilises déjà l\'autrichienne. Après Côme, on file vers Bolzano, Dolomites, Autriche, Munich et Stuttgart.'},
+        {title:'À choisir visuellement',text:'Cadini = rando photo. Passo Gardena/Sella = cols dolomitiques gratuits. Grossglockner = spectaculaire en voiture, mais péage séparé.'},
+        {title:'Pour rester proche de 350 €',text:'Dormir en camping dans les Dolomites, éviter Cortina, éviter Munich centre, et garder Grossglockner seulement si vous acceptez le supplément.'}
+      ],
+      sources:'Repères research : <a href="https://www.prix-carburants.gouv.fr/" target="_blank" rel="noopener">prix-carburants.gouv.fr</a>, <a href="https://de.wikipedia.org/wiki/Autobahnvignette" target="_blank" rel="noopener">vignette autrichienne 2026</a>, <a href="https://en.wikipedia.org/wiki/Cadini_di_Misurina" target="_blank" rel="noopener">Cadini di Misurina</a>, <a href="https://en.wikipedia.org/wiki/Sella_Pass" target="_blank" rel="noopener">Passo Sella</a>, <a href="https://en.wikipedia.org/wiki/Grossglockner_High_Alpine_Road" target="_blank" rel="noopener">Grossglockner</a>. Températures : <a href="https://open-meteo.com/" target="_blank" rel="noopener">Open-Meteo</a>, prévisions 13–18 juillet 2026.'
+    }
+  }
+};
+
+let activeRouteKey='classic';
+let DAYS=ROUTES[activeRouteKey].days;
+let STOPS=ROUTES[activeRouteKey].stops;
+const TEMP_RANGES = {
+  common:{
+    'Circuit Paul Ricard':'Prévoir 24–35 °C · 13/07 · alt. modèle env. 424 m.',
+    'Saint-Tropez':'Prévoir 25–35 °C · 13/07 · alt. modèle env. 12 m.',
+    'Nuit · Saint-Raphaël':'Prévoir 27–33 °C · 13/07 · alt. modèle env. 9 m.',
+    'Monaco':'Prévoir 27–32 °C · 14/07 · alt. modèle env. 44 m.',
+    'Milan':'Prévoir 24–34 °C · 14/07 · alt. modèle env. 147 m.',
+    'Lac de Côme':'Prévoir 23–33 °C · 15/07 · alt. modèle env. 216 m.',
+    'Brunate · Faro Voltiano':'Prévoir 21–30 °C · 15/07 · alt. modèle env. 624 m.'
+  },
+  classic:{
+    'Nuit · Chiasso / Lugano':'Prévoir 23–32 °C · 15/07 · alt. modèle env. 286 m.',
+    'Bellinzona':'Prévoir 24–29 °C · 16/07 · alt. modèle env. 227 m.',
+    'Col du Saint-Gothard':'Prévoir 13–17 °C · 16/07 · alt. modèle env. 2 117 m.',
+    'Andermatt':'Prévoir 17–23 °C · 16/07 · alt. modèle env. 1 438 m.',
+    'Col de la Furka':'Prévoir 12–18 °C · 16/07 · alt. modèle env. 2 473 m.',
+    'Gletsch':'Prévoir 15–20 °C · 16/07 · alt. modèle env. 1 786 m.',
+    'Col du Grimsel':'Prévoir 12–18 °C · 16/07 · alt. modèle env. 2 159 m.',
+    'Nuit · Meiringen':'Prévoir 21–32 °C · 16/07 · alt. modèle env. 598 m.',
+    'Col du Brünig':'Prévoir 16–22 °C · 17/07 · alt. modèle env. 1 027 m.',
+    'Lucerne':'Prévoir 20–26 °C · 17/07 · alt. modèle env. 437 m.',
+    'Bâle':'Prévoir 20–26 °C · 17/07 · alt. modèle env. 247 m.',
+    'Moselle':'Prévoir 19–25 °C · 17/07 · alt. modèle env. 179 m.'
+  },
+  dolomites:{
+    'Nuit · Bolzano / Val Gardena':'Prévoir 22–34 °C · 15/07 · alt. modèle env. 273 m.',
+    'Passo Gardena / Sella':'Prévoir 11–19 °C · 16/07 · alt. modèle env. 2 116 m.',
+    'Cadini di Misurina':'Prévoir 11–19 °C · 16/07 · alt. modèle env. 2 192 m.',
+    'Nuit · Dobbiaco / Lienz':'Prévoir 17–25 °C · 16/07 · alt. modèle env. 1 239 m.',
+    'Grossglockner Hochalpenstrasse':'Prévoir 10–14 °C · 17/07 · alt. modèle env. 2 162 m.',
+    'Munich':'Prévoir 21–25 °C · 17/07 · alt. modèle env. 521 m.',
+    'Stuttgart':'Prévoir 19–28 °C · 18/07 · alt. modèle env. 249 m.',
+    'Moselle':'Prévoir 19–26 °C · 18/07 · alt. modèle env. 179 m.'
+  }
+};
+
+function getStopTemp(stop){
+  return (TEMP_RANGES[activeRouteKey]&&TEMP_RANGES[activeRouteKey][stop.name]) || TEMP_RANGES.common[stop.name] || null;
+}
+
+/* ============ MAP ============ */
+const ESRI_ATTR = 'Imagery © Esri, Maxar, Earthstar Geographics · Relief: AWS Terrain';
+const map = new maplibregl.Map({
+  container:'map',
+  maxPitch:85,
+  center:[8.2,46.0], zoom:5.4, pitch:0, bearing:0,
+  attributionControl:{compact:true},
+  style:{
+    version:8,
+    glyphs:'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+    sources:{
+      sat:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:19,attribution:ESRI_ATTR},
+      labels:{type:'raster',tiles:['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'],tileSize:256,maxzoom:19},
+      terrain:{type:'raster-dem',tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'],encoding:'terrarium',tileSize:256,maxzoom:14}
+    },
+    layers:[
+      {id:'bg',type:'background',paint:{'background-color':'#0a1020'}},
+      {id:'sat',type:'raster',source:'sat'},
+      {id:'hill',type:'hillshade',source:'terrain',paint:{'hillshade-exaggeration':0.45,'hillshade-shadow-color':'#0a0d14','hillshade-accent-color':'#1a2230','hillshade-highlight-color':'#f6efe0'}},
+      {id:'labels',type:'raster',source:'labels',paint:{'raster-opacity':0.85}}
+    ]
+  }
+});
+map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'bottom-right');
+map.dragRotate.enable();
+
+/* ---- Trackpad Mac : 2 doigts = naviguer · pince = zoomer ---- */
+map.scrollZoom.disable();
+const _cc=map.getCanvasContainer();
+function _zoomAround(clientX,clientY,dz){
+  const r=map.getCanvas().getBoundingClientRect();
+  const around=map.unproject([clientX-r.left,clientY-r.top]);
+  map.easeTo({zoom:map.getZoom()+dz,around,duration:80,easing:t=>t});
+}
+_cc.addEventListener('wheel',e=>{
+  e.preventDefault();
+  // vraie souris à molette : pas/cran discret vertical → on garde le zoom
+  const mouseWheel = e.deltaX===0 && e.deltaMode===0 && Math.abs(e.deltaY)>=50 && Number.isInteger(e.deltaY);
+  if(e.ctrlKey){                       // pince trackpad (Chrome/Edge) → zoom
+    _zoomAround(e.clientX,e.clientY,-e.deltaY*0.012);
+  } else if(mouseWheel){               // molette souris → zoom
+    _zoomAround(e.clientX,e.clientY,e.deltaY>0?-0.4:0.4);
+  } else {                             // 2 doigts trackpad → déplacement
+    map.panBy([e.deltaX,e.deltaY],{duration:0},{originalEvent:e});
+  }
+},{passive:false});
+// Pince trackpad sous Safari (événements gesture* au lieu de ctrl+molette)
+let _gz=0;
+_cc.addEventListener('gesturestart',e=>{e.preventDefault();_gz=map.getZoom();});
+_cc.addEventListener('gesturechange',e=>{e.preventDefault();map.setZoom(_gz+Math.log2(e.scale));});
+_cc.addEventListener('gestureend',e=>e.preventDefault());
+
+let routeBounds = new maplibregl.LngLatBounds();
+let routeFeatures=[];
+let roadLoadToken=0;
+let mapReady=false;
+
+function buildRouteFeatures(){
+  routeBounds = new maplibregl.LngLatBounds();
+  routeFeatures = [];
+  STOPS.forEach(s=>routeBounds.extend(s.coord));
+  for(let i=0;i<STOPS.length-1;i++){
+    routeFeatures.push({type:'Feature',properties:{color:DAYS[STOPS[i].day].color,dist:null},
+      geometry:{type:'LineString',coordinates:[STOPS[i].coord,STOPS[i+1].coord]}});
+  }
+}
+function fitRoute(duration=0){
+  map.fitBounds(routeBounds,{padding:{top:120,bottom:120,left:390,right:80},pitch:38,bearing:-8,duration});
+}
+function updateMarkerVisibility(){
+  const z=map.getZoom();
+  document.body.classList.toggle('zoom-overview',z<6.4);
+  document.body.classList.toggle('zoom-icons',z>=6.4&&z<8.2);
+  document.body.classList.toggle('zoom-labels',z>=8.2);
+}
+
+map.on('load',()=>{
+  map.setTerrain({source:'terrain',exaggeration:1.45});
+  try{ map.setSky({'sky-color':'#9fc4ff','sky-horizon-blend':0.6,'horizon-color':'#dbe7f6','horizon-fog-blend':0.5,'fog-color':'#cdd8e6','fog-ground-blend':0.4,'atmosphere-blend':['interpolate',['linear'],['zoom'],0,1,10,0.2]}); }catch(e){}
+
+  buildRouteFeatures();
+  map.addSource('route',{type:'geojson',lineMetrics:true,data:{type:'FeatureCollection',features:routeFeatures}});
+  map.addLayer({id:'route-glow',type:'line',source:'route',layout:{'line-cap':'round','line-join':'round'},
+    paint:{'line-color':['get','color'],'line-width':10,'line-opacity':0.20,'line-blur':5}});
+  map.addLayer({id:'route-line',type:'line',source:'route',layout:{'line-cap':'round','line-join':'round'},
+    paint:{'line-color':['get','color'],'line-width':['interpolate',['linear'],['zoom'],5,2.2,12,4,15,5.5],'line-opacity':0.96}});
+  map.addLayer({id:'route-casing',type:'line',source:'route',layout:{'line-cap':'round','line-join':'round'},
+    paint:{'line-color':'#0a0d14','line-width':['interpolate',['linear'],['zoom'],5,4,12,7,15,9],'line-opacity':0.35,'line-blur':1.5}},'route-line');
+
+  addMarkers();
+  updateMarkerVisibility();
+  map.on('zoom',updateMarkerVisibility);
+  mapReady=true;
+  setTimeout(()=>fitRoute(0),60);
+  loadRoads();
+});
+
+/* ============ REAL ROAD ROUTING (OSRM, no key) ============ */
+function haversine(a,b){
+  const R=6371,dLat=(b[1]-a[1])*Math.PI/180,dLon=(b[0]-a[0])*Math.PI/180;
+  const s=Math.sin(dLat/2)**2+Math.cos(a[1]*Math.PI/180)*Math.cos(b[1]*Math.PI/180)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(s))*1000;
+}
+async function loadRoads(){
+  const token=++roadLoadToken;
+  const toast=document.getElementById('toast');
+  toast.classList.add('show');
+  for(let i=0;i<routeFeatures.length;i++){
+    if(token!==roadLoadToken) return;
+    const a=STOPS[i].coord, b=STOPS[i+1].coord;
+    const url=`https://router.project-osrm.org/route/v1/driving/${a[0]},${a[1]};${b[0]},${b[1]}?overview=full&geometries=geojson`;
+    try{
+      const r=await fetch(url);
+      const j=await r.json();
+      if(token!==roadLoadToken) return;
+      if(j&&j.code==='Ok'&&j.routes&&j.routes[0]&&routeFeatures[i]){
+        routeFeatures[i].geometry=j.routes[0].geometry;
+        routeFeatures[i].properties.dist=j.routes[0].distance;
+        const src=map.getSource('route');
+        if(src) src.setData({type:'FeatureCollection',features:routeFeatures});
+      }
+    }catch(e){/* keep straight-line fallback for this segment */}
+    await new Promise(res=>setTimeout(res,130));
+  }
+  if(token!==roadLoadToken) return;
+  // total distance → top stat
+  let total=0;
+  routeFeatures.forEach((f,i)=>{ total += f.properties.dist || haversine(STOPS[i].coord,STOPS[i+1].coord); });
+  const km=Math.round(total/1000/10)*10;
+  const el=document.getElementById('kmStat'); if(el) el.textContent='≈'+km.toLocaleString('fr-FR');
+  toast.classList.remove('show');
+}
+
+/* ============ MARKERS ============ */
+let markers=[];
+function clearMarkers(){
+  markers.forEach(m=>m.marker.remove());
+  markers=[];
+}
+function addMarkers(){
+  clearMarkers();
+  STOPS.forEach((s,i)=>{
+    const el=document.createElement('div');
+    el.className='mk';
+    el.style.setProperty('--mc',DAYS[s.day].color);
+    el.innerHTML=`<div class="mk-in"><div class="pin"><span>${s.icon}</span></div><div class="lbl">${s.name}</div></div>`;
+    el.addEventListener('click',ev=>{ev.stopPropagation();selectStop(i,true);});
+    const marker=new maplibregl.Marker({element:el,anchor:'bottom'}).setLngLat(s.coord).addTo(map);
+    markers.push({el,marker});
+  });
+}
+
+/* ============ SIDEBAR BUILD ============ */
+const routeTabs=document.getElementById('routeTabs');
+const dayTabs=document.getElementById('dayTabs');
+const stopsEl=document.getElementById('stops');
+const detail=document.getElementById('detail');
+let activeDay=null;
+let current=-1;
+
+function updateRouteChrome(){
+  const r=ROUTES[activeRouteKey];
+  document.getElementById('routeBrand').textContent=r.brand;
+  document.getElementById('routeEyebrow').textContent=r.eyebrow;
+  document.getElementById('routeTitle').textContent=r.title;
+  document.getElementById('routeLead').textContent=r.lead;
+  document.getElementById('kmStat').textContent=r.stats.km;
+  document.getElementById('daysStat').textContent=r.stats.days;
+  document.getElementById('nightsStat').textContent=r.stats.nights;
+  document.getElementById('metaStat').textContent=r.stats.meta;
+  document.getElementById('metaLabel').textContent=r.stats.metaLabel;
+}
+
+function renderRouteTabs(){
+  [...routeTabs.querySelectorAll('.route-tab')].forEach(btn=>{
+    btn.classList.toggle('active',btn.dataset.route===activeRouteKey);
+  });
+}
+
+function renderBudget(){
+  const b=ROUTES[activeRouteKey].budget;
+  document.getElementById('budgetTitle').textContent=b.title;
+  document.getElementById('budgetSub').textContent=b.sub;
+  document.getElementById('budgetTable').innerHTML=b.rows.map(r=>
+    `<tr class="${r[2]==='tot'?'tot':''}"><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('');
+  document.getElementById('budgetNote').innerHTML=b.note;
+  const plans=document.getElementById('budgetPlans');
+  plans.innerHTML=(b.plans||[]).map(p=>`<div class="plan-card"><b>${p.title}</b>${p.text}</div>`).join('');
+  plans.style.display=(b.plans&&b.plans.length)?'grid':'none';
+  const sources=document.getElementById('budgetSources');
+  sources.innerHTML=b.sources||'';
+  sources.style.display=b.sources?'block':'none';
+}
+
+function renderDayTabs(){
+  dayTabs.innerHTML='';
+  DAYS.forEach((d,di)=>{
+    const t=document.createElement('div');
+    t.className='day-tab'; t.style.setProperty('--dc',d.color);
+    t.innerHTML=`<div class="dot"></div><div class="dn">${d.n}</div><div class="dl">${d.label}</div>`;
+    t.addEventListener('click',()=>filterDay(di));
+    dayTabs.appendChild(t);
+  });
+}
+
+function renderStops(){
+  stopsEl.innerHTML='';
+  DAYS.forEach((d,di)=>{
+    if(activeDay!==null && activeDay!==di) return;
+    const block=document.createElement('div'); block.className='day-block';
+    block.innerHTML=`<div class="day-title" style="--dc:${d.color}"><span class="bar"></span>${d.full}</div>`;
+    STOPS.forEach((s,i)=>{
+      if(s.day!==di) return;
+      const el=document.createElement('div');
+      el.className='stop'; el.dataset.i=i; el.style.setProperty('--dc',d.color);
+      el.innerHTML=`<div class="ic">${s.icon}</div><div class="meta">
+        <div class="nm">${s.name}</div><div class="tm">${s.time}</div>
+        <div class="ds">${s.desc}</div></div>`;
+      el.addEventListener('click',()=>selectStop(i,true));
+      block.appendChild(el);
+    });
+    stopsEl.appendChild(block);
+  });
+}
+function filterDay(di){
+  activeDay=(activeDay===di)?null:di;
+  [...dayTabs.children].forEach((t,i)=>t.classList.toggle('active',i===activeDay));
+  renderStops();
+}
+
+function setActiveRoute(key,fit=true){
+  if(!ROUTES[key]||key===activeRouteKey) return;
+  stopTour();
+  activeRouteKey=key;
+  DAYS=ROUTES[key].days;
+  STOPS=ROUTES[key].stops;
+  activeDay=null;
+  current=-1;
+  detail.classList.remove('show');
+  updateRouteChrome();
+  renderRouteTabs();
+  renderDayTabs();
+  renderStops();
+  renderBudget();
+  buildRouteFeatures();
+  if(mapReady){
+    const src=map.getSource('route');
+    if(src) src.setData({type:'FeatureCollection',features:routeFeatures});
+    addMarkers();
+    if(fit) fitRoute(2200);
+    loadRoads();
+  }
+}
+
+routeTabs.addEventListener('click',e=>{
+  const btn=e.target.closest('.route-tab');
+  if(btn) setActiveRoute(btn.dataset.route);
+});
+
+updateRouteChrome();
+renderRouteTabs();
+renderDayTabs();
+renderStops();
+renderBudget();
+
+/* ============ DETAIL / SELECTION ============ */
+function selectStop(i,fly){
+  current=i;
+  const s=STOPS[i], d=DAYS[s.day];
+  document.documentElement.style.setProperty('--dc',d.color);
+
+  detail.style.setProperty('--dc',d.color);
+  document.getElementById('dBadge').innerHTML=`${s.icon} ${d.full.split(' · ')[0]} · ${s.tag}`;
+  document.getElementById('dTitle').textContent=s.name;
+  document.getElementById('dTime').textContent=s.time;
+  const media=document.getElementById('dMedia');
+  const img=document.getElementById('dPhoto');
+  const cap=document.getElementById('dPhotoCap');
+  if(s.photo){
+    img.src=s.photo.src;
+    img.alt=s.photo.alt || s.name;
+    cap.textContent=s.photo.cap || '';
+    media.classList.add('show');
+  }else{
+    img.removeAttribute('src');
+    img.alt='';
+    cap.textContent='';
+    media.classList.remove('show');
+  }
+  document.getElementById('dDesc').textContent=s.desc;
+  document.getElementById('dChips').innerHTML=s.chips.map(c=>`<span class="chip">${c}</span>`).join('');
+  const temp=getStopTemp(s);
+  const infoRows=temp?[...s.info,['🌡️','Température à prévoir',temp]]:s.info;
+  document.getElementById('dInfo').innerHTML=infoRows.map(r=>
+    `<div class="inforow"><div class="ri">${r[0]}</div><div><span class="rk">${r[1]}</span><span class="rv">${r[2]}</span></div></div>`).join('');
+  detail.classList.add('show');
+
+  markers.forEach((m,k)=>m.el.classList.toggle('active',k===i));
+  [...stopsEl.querySelectorAll('.stop')].forEach(el=>el.classList.toggle('active',+el.dataset.i===i));
+
+  if(fly) flyTo(s);
+}
+function flyTo(s){
+  map.flyTo({center:s.coord,zoom:s.cam.zoom,pitch:s.cam.pitch,bearing:s.cam.bearing,
+    duration:2600,curve:1.5,essential:true});
+}
+document.getElementById('detailClose').onclick=()=>{detail.classList.remove('show');markers.forEach(m=>m.el.classList.remove('active'));};
+document.getElementById('dFly').onclick=()=>{if(current>=0)flyTo(STOPS[current]);};
+document.getElementById('dNext').onclick=()=>{if(current<STOPS.length-1)selectStop(current+1,true);};
+document.getElementById('dPrev').onclick=()=>{if(current>0)selectStop(current-1,true);};
+
+/* ============ GUIDED TOUR ============ */
+let touring=false, tourTimer=null;
+const playBtn=document.getElementById('playBtn');
+playBtn.onclick=()=>touring?stopTour():startTour();
+
+function startTour(){
+  touring=true;
+  playBtn.innerHTML='<span class="ic">⏸</span> Arrêter';
+  let i=(current>=0&&current<STOPS.length-1)?current+1:0;
+  const step=()=>{
+    if(!touring)return;
+    selectStop(i,true);
+    i++;
+    if(i>=STOPS.length){ tourTimer=setTimeout(stopTour,4200); return; }
+    tourTimer=setTimeout(step,4600);
+  };
+  step();
+}
+function stopTour(){
+  touring=false;
+  clearTimeout(tourTimer);
+  playBtn.innerHTML='<span class="ic">▶</span> Visite guidée';
+}
+
+/* ============ CONTROLS ============ */
+document.getElementById('resetBtn').onclick=()=>{
+  stopTour(); detail.classList.remove('show'); markers.forEach(m=>m.el.classList.remove('active'));
+  fitRoute(2200);
+};
+const bo=document.getElementById('budgetOverlay');
+document.getElementById('budgetBtn').onclick=()=>bo.classList.add('show');
+document.getElementById('budgetClose').onclick=()=>bo.classList.remove('show');
+bo.addEventListener('click',e=>{if(e.target===bo)bo.classList.remove('show');});
+
+const sidebar=document.getElementById('sidebar');
+document.getElementById('sidebtn').onclick=()=>sidebar.classList.toggle('collapsed');
+
+/* ============ INTRO ============ */
+document.getElementById('introGo').onclick=()=>{
+  document.getElementById('intro').classList.add('hide');
+  setTimeout(()=>{ map.flyTo({center:STOPS[0].coord,zoom:STOPS[0].cam.zoom,pitch:STOPS[0].cam.pitch,bearing:STOPS[0].cam.bearing,duration:4200,curve:1.4}); },400);
+  setTimeout(()=>selectStop(0,false),4400);
+};
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowRight'&&current<STOPS.length-1)selectStop(current+1,true);
+  if(e.key==='ArrowLeft'&&current>0)selectStop(current-1,true);
+  if(e.key==='Escape'){bo.classList.remove('show');detail.classList.remove('show');stopTour();}
+});
+</script>
+</body>
+</html>
